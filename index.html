@@ -1,174 +1,29 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Middle</title>
-    <link rel="icon" type="image/png" href="thethumb.png">
-    <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
-    
-    <style>
-        :root {
-            --banner-purple: #2e004f;
-            --void-purple: #1a002e; 
-            --gold: #ffd700;
-            --soft-white: #f4f4f4;
-        }
-
-        body { 
-            margin: 0; padding: 0; 
-            font-family: 'Courier New', Courier, monospace; 
-            background: var(--void-purple); 
-            color: var(--gold);
-            display: flex; flex-direction: column; height: 100vh;
-            overflow: hidden;
-        }
-
-        /* Global Video Background Container */
-        #video-container {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: -1; background: var(--void-purple);
-            overflow: hidden;
-        }
-
-        #bg-video { width: 100%; height: 100%; object-fit: cover; opacity: 0.45; }
-
-        .banner { 
-            background: var(--banner-purple); padding: 20px; text-align: center; 
-            border-bottom: 5px solid var(--gold); z-index: 100; position: relative;
-        }
-
-        h1 { 
-            margin: 0; font-family: 'Bangers', cursive; 
-            font-size: 4.5rem; letter-spacing: 3px; 
-            text-transform: uppercase; text-shadow: 3px 3px 0px #000;
-        }
-
-        .main-layout { display: flex; flex-grow: 1; overflow: hidden; position: relative; }
-
-        #live-feed {
-            width: 320px; background: rgba(46, 0, 79, 0.9); 
-            border-right: 2px solid var(--gold); padding: 15px;
-            overflow-y: auto; z-index: 10;
-        }
-
-        .feed-header { font-family: 'Bangers'; font-size: 1.8rem; text-align: center; border-bottom: 2px solid var(--gold); margin-bottom: 15px; }
-        .feed-entry { margin-bottom: 12px; line-height: 1.4; border-bottom: 1px solid rgba(255,215,0,0.1); padding-bottom: 8px; color: var(--soft-white); font-size: 0.85rem;}
-
-        .registry-container { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-        #registry-list { flex-grow: 1; overflow-y: auto; padding: 20px 5%; z-index: 5; }
-
-        .search-area { padding: 20px; text-align: center; z-index: 5; }
-        #searchBar { 
-            width: 60%; padding: 12px; background: rgba(0,0,0,0.85); 
-            border: 2px solid var(--gold); color: var(--gold); 
-            font-size: 1.3rem; font-family: 'Bangers', cursive; outline: none;
-        }
-
-        .gold-btn { background: var(--gold); color: var(--banner-purple); border: none; padding: 10px 25px; cursor: pointer; font-family: 'Bangers', cursive; font-size: 1.2rem; }
-        .nav-btn { position: fixed; bottom: 20px; padding: 10px 20px; border: 2px solid var(--gold); background: var(--banner-purple); color: var(--gold); font-family: 'Bangers'; z-index: 2000; text-decoration: none; font-size: 0.9rem; }
-        
-        .name-entry { border: 1px solid var(--gold); margin-bottom: 10px; background: rgba(0,0,0,0.8); }
-        .name-header { padding: 15px; font-size: 1.8rem; cursor: pointer; font-family: 'Bangers', cursive; display: flex; justify-content: space-between; }
-        .v-sublist { display: none; padding: 20px; border-top: 1px solid var(--gold); background: rgba(0,0,0,0.4); }
-
-        /* Modals */
-        #auth-modal, #v-entry-modal { 
-            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: var(--banner-purple); border: 4px solid var(--gold); 
-            padding: 30px; z-index: 3000; width: 650px; max-height: 80vh; overflow-y: auto;
-            box-shadow: 15px 15px 0px #000;
-        }
-        .admin-input { background: transparent; border: 1px solid var(--gold); color: white; padding: 8px; margin-bottom: 10px; width: 95%; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 15px; color: white;}
-        th, td { border: 1px solid var(--gold); padding: 5px; text-align: left; }
-    </style>
-</head>
-<body>
-
-    <div id="video-container">
-        <video id="bg-video" autoplay muted playsinline></video>
-    </div>
-
-    <div class="banner">
-        <h1>The Middle</h1>
-    </div>
-
-    <div class="main-layout">
-        <div id="live-feed">
-            <div class="feed-header">AUDIT LOG</div>
-            <div id="feed-content"></div>
-        </div>
-
-        <div class="registry-container">
-            <div class="search-area">
-                <input type="text" id="searchBar" placeholder="SEARCH REGISTRY..." oninput="window.filterNames()">
-                <button class="gold-btn" id="newVBtn">+ NEW VENGEANCE</button>
-            </div>
-            <div id="registry-list"></div>
-        </div>
-    </div>
-
-    <a href="https://thering1.github.io/thering.github.io/" style="left:20px;" class="nav-btn">THE RING</a>
-    <button id="auth-toggle-btn" style="right:20px;" class="nav-btn">SIGN IN</button>
-
-    <div id="auth-modal">
-        <div id="login-view">
-            <h2 style="font-family:'Bangers'">IDENTIFY SIBLING</h2>
-            <input type="text" id="uIn" placeholder="Username" class="admin-input"><br>
-            <input type="password" id="pIn" placeholder="Password" class="admin-input"><br>
-            <button class="gold-btn" id="loginBtn">ENTER</button>
-            <button id="cancelAuthBtn" style="color:var(--gold); background:none; border:none; cursor:pointer; margin-left:10px;">CANCEL</button>
-        </div>
-
-        <div id="admin-view" style="display:none;">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--gold); padding-bottom:10px;">
-                <h2 id="sib-welcome" style="font-family:'Bangers'; margin:0;"></h2>
-                <button id="logoutBtn" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold;">LOGOUT</button>
-            </div>
-            <div id="great-tools" style="display:none; margin-top:20px;">
-                <h3 style="font-family:'Bangers'">SIBLING MANAGEMENT</h3>
-                <div style="background:rgba(0,0,0,0.3); padding:10px; border:1px dashed var(--gold); margin-bottom:10px;">
-                    <input type="text" id="regD" placeholder="Display Name" style="width:20%">
-                    <input type="text" id="regU" placeholder="Username" style="width:20%">
-                    <input type="text" id="regP" placeholder="Password" style="width:20%">
-                    <input type="text" id="regR" placeholder="Rank" style="width:20%">
-                    <button id="regSibBtn" class="gold-btn" style="font-size:0.7rem; padding:5px 10px;">CREATE</button>
-                </div>
-                <table>
-                    <thead><tr><th>Name</th><th>User</th><th>Pass</th><th>Rank</th><th>Actions</th></tr></thead>
-                    <tbody id="sib-table-body"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div id="v-entry-modal">
-        <h2 style="font-family:'Bangers'">RECORD SIN</h2>
-        <input type="text" id="targetName" placeholder="TARGET NAME" class="admin-input">
-        <textarea id="sinDesc" placeholder="THE SIN" class="admin-input" rows="3"></textarea>
-        <textarea id="vDesc" placeholder="THE VENGEANCE" class="admin-input" rows="3"></textarea>
-        <button class="gold-btn" id="publishVBtn">PUBLISH</button>
-        <button id="cancelVBtn" style="color:var(--gold); background:none; border:none; cursor:pointer; margin-left:10px;">CANCEL</button>
-    </div>
-
-    <script type="module">
+<script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, push, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        const firebaseConfig = {
+        // Project A: The Middle (Vengeance Registry & Logs)
+        const middleConfig = {
             apiKey: "AIzaSyCHSN6HiR50_sFT7L8p0bOUVDBb3KBpJiY",
             authDomain: "the-ring-97f20.firebaseapp.com",
             projectId: "the-ring-97f20",
-            storageBucket: "the-ring-97f20.firebasestorage.app",
-            messagingSenderId: "254314705601",
-            appId: "1:254314705601:web:80eea55a563f7a01f95a40",
             databaseURL: "https://the-ring-97f20-default-rtdb.asia-southeast1.firebasedatabase.app"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        // Project B: Shared Accounts (The Sibling Directory)
+        const accountConfig = {
+            apiKey: "AIzaSyDHSXFPCiG2kjRAFzqUJn1OQoXD1bCtfH8",
+            authDomain: "account-data-54450.firebaseapp.com",
+            databaseURL: "https://account-data-54450-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "account-data-54450"
+        };
+
+        const middleApp = initializeApp(middleConfig, "middleApp");
+        const accountApp = initializeApp(accountConfig, "accountApp");
+
+        const db = getDatabase(middleApp);      // For Registry/Logs
+        const userDb = getDatabase(accountApp); // For Sibling Accounts
+        
         let currentSib = null;
         let registry = {};
 
@@ -178,94 +33,24 @@
             return div.innerHTML;
         };
 
-        // --- VIDEO LOGIC ---
-        const videoElement = document.getElementById('bg-video');
-        let lastVideo = 0;
-        const shuffleBackground = () => {
-            let randomIndex;
-            do { randomIndex = Math.floor(Math.random() * 6) + 1; } while (randomIndex === lastVideo);
-            lastVideo = randomIndex;
-            videoElement.src = `middle compilation (${randomIndex}).mp4`;
-            videoElement.load();
-            videoElement.play().catch(() => {});
-        };
-        videoElement.addEventListener('ended', shuffleBackground);
-        shuffleBackground();
-
-        // --- FIREBASE SYNC ---
-        onValue(ref(db, 'middle_logs'), snap => {
-            const feed = document.getElementById('feed-content'); 
-            feed.innerHTML = "";
-            const logs = []; snap.forEach(c => { logs.push(c.val()); });
-            logs.reverse().forEach(l => {
-                const entry = document.createElement('div');
-                entry.className = 'feed-entry';
-                entry.innerHTML = `<b>${sanitize(l.user)}, ${sanitize(l.rank)}:</b> ${sanitize(l.action)} against <b>${sanitize(l.target)}</b>.`;
-                feed.appendChild(entry);
-            });
-        });
-
-        onValue(ref(db, 'middle_registry'), snap => {
-            registry = snap.val() || {};
-            window.renderRegistry();
-        });
-
-        // --- RENDER REGISTRY (FIXED FOR APOSTROPHES) ---
-        window.renderRegistry = (filter = "") => {
-            const list = document.getElementById('registry-list'); 
-            list.innerHTML = "";
-            
-            Object.keys(registry).sort().forEach(name => {
-                if (filter && !name.toLowerCase().includes(filter.toLowerCase())) return;
-                
-                const entry = document.createElement('div');
-                entry.className = 'name-entry';
-                
-                const header = document.createElement('div');
-                header.className = 'name-header';
-                header.innerHTML = `<span>> ${sanitize(name)}</span>`;
-                
-                const sublist = document.createElement('div');
-                sublist.className = 'v-sublist';
-                
-                // Toggle sublist without using inline onclick strings
-                header.addEventListener('click', () => {
-                    sublist.style.display = sublist.style.display === 'block' ? 'none' : 'block';
-                });
-
-                entry.appendChild(header);
-                entry.appendChild(sublist);
-                list.appendChild(entry);
-                
-                Object.keys(registry[name]).forEach(vId => {
-                    const v = registry[name][vId];
-                    const vDiv = document.createElement('div');
-                    vDiv.style.cssText = "margin-bottom:15px; border-left:3px solid var(--gold); padding-left:15px;";
-                    vDiv.innerHTML = `<div style="color:#ff6b6b; font-weight:bold;">SIN: ${sanitize(v.sin)}</div>
-                                      <div style="color:white; margin: 5px 0;">VENGEANCE: ${sanitize(v.action)}</div>`;
-                    
-                    const compBtn = document.createElement('button');
-                    compBtn.className = "gold-btn";
-                    compBtn.style.cssText = "font-size:0.7rem; padding:5px; margin-top:10px;";
-                    compBtn.textContent = "COMPLETED VENGEANCE";
-                    compBtn.addEventListener('click', () => completeV(name, vId));
-                    
-                    vDiv.appendChild(compBtn);
-                    sublist.appendChild(vDiv);
-                });
-            });
-        };
-
-        // --- ACTIONS ---
+        // --- AUTH LOGIC (Points to account-data-54450) ---
         const login = async () => {
             const u = document.getElementById('uIn').value, p = document.getElementById('pIn').value;
-            const snap = await get(ref(db, `middle_users/${u}`));
+            // Hierarchy: users > username
+            const snap = await get(ref(userDb, `users/${u}`));
+            
             if(snap.exists() && snap.val().password === p) {
-                currentSib = snap.val(); currentSib.username = u;
+                currentSib = snap.val(); 
+                currentSib.username = u;
+                
                 document.getElementById('login-view').style.display = 'none';
                 document.getElementById('admin-view').style.display = 'block';
-                document.getElementById('sib-welcome').innerText = `${currentSib.display_name}, ${currentSib.rank}`;
+                
+                // Format: Name, Rank of the Finger
+                const welcomeName = `${sanitize(currentSib.display_name)}, ${sanitize(currentSib.rank)} of the ${sanitize(currentSib.finger || "Void")}`;
+                document.getElementById('sib-welcome').innerText = welcomeName;
                 document.getElementById('auth-toggle-btn').innerText = "COLLAPSE INFO";
+                
                 if(currentSib.rank.toLowerCase().includes("great") || currentSib.rank.toLowerCase().includes("lord")) {
                     document.getElementById('great-tools').style.display = 'block';
                     loadSiblings();
@@ -273,21 +58,31 @@
             } else alert("Access Denied.");
         };
 
+        // --- SIBLING MANAGEMENT (Lord Only - Points to Account DB) ---
         function loadSiblings() {
-            onValue(ref(db, 'middle_users'), snap => {
+            onValue(ref(userDb, 'users'), snap => {
                 const body = document.getElementById('sib-table-body'); body.innerHTML = "";
                 snap.forEach(child => {
                     const u = child.key; const d = child.val();
                     const row = document.createElement('tr');
-                    row.innerHTML = `<td><input type="text" id="ed-d-${u}" value="${sanitize(d.display_name)}" style="width:70px"></td>
-                                     <td>${sanitize(u)}</td>
-                                     <td><input type="text" id="ed-p-${u}" value="${sanitize(d.password)}" style="width:70px"></td>
-                                     <td><input type="text" id="ed-r-${u}" value="${sanitize(d.rank)}" style="width:70px"></td>`;
+                    row.innerHTML = `
+                        <td><input type="text" id="ed-d-${u}" value="${sanitize(d.display_name)}" style="width:70px"></td>
+                        <td>${sanitize(u)}</td>
+                        <td><input type="text" id="ed-p-${u}" value="${sanitize(d.password)}" style="width:70px"></td>
+                        <td><input type="text" id="ed-r-${u}" value="${sanitize(d.rank)}" style="width:70px"></td>
+                        <td><input type="text" id="ed-f-${u}" value="${sanitize(d.finger || '')}" style="width:70px"></td>`;
+                    
                     const actionTd = document.createElement('td');
                     const saveBtn = document.createElement('button');
                     saveBtn.textContent = "SAVE"; saveBtn.style.fontSize = "0.6rem";
                     saveBtn.onclick = () => saveSib(u);
+                    
+                    const delBtn = document.createElement('button');
+                    delBtn.textContent = "X"; delBtn.style.cssText = "font-size:0.6rem; color:red; margin-left:5px;";
+                    delBtn.onclick = () => { if(confirm("Exile Sibling?")) remove(ref(userDb, `users/${u}`)); };
+
                     actionTd.appendChild(saveBtn);
+                    actionTd.appendChild(delBtn);
                     row.appendChild(actionTd);
                     body.appendChild(row);
                 });
@@ -295,52 +90,58 @@
         }
 
         const saveSib = async (u) => {
-            const d = document.getElementById(`ed-d-${u}`).value, p = document.getElementById(`ed-p-${u}`).value, r = document.getElementById(`ed-r-${u}`).value;
-            await set(ref(db, `middle_users/${u}`), { display_name: d, password: p, rank: r });
-            alert("Updated.");
+            const d = document.getElementById(`ed-d-${u}`).value;
+            const p = document.getElementById(`ed-p-${u}`).value;
+            const r = document.getElementById(`ed-r-${u}`).value;
+            const f = document.getElementById(`ed-f-${u}`).value;
+            await set(ref(userDb, `users/${u}`), { display_name: d, password: p, rank: r, finger: f });
+            alert("Record Updated.");
         };
+
+        document.getElementById('regSibBtn').onclick = async () => {
+            const d = document.getElementById('regD').value, 
+                  u = document.getElementById('regU').value, 
+                  p = document.getElementById('regP').value, 
+                  r = document.getElementById('regR').value,
+                  f = "Void"; // Default finger for new recruits
+            if(!u || !p) return;
+            await set(ref(userDb, `users/${u}`), { display_name: d, password: p, rank: r, finger: f });
+            alert("Registered in Global Account DB.");
+        };
+
+        // --- REGISTRY & LOGS (Points to Middle/Ring Data DB) ---
+        onValue(ref(db, 'middle_logs'), snap => {
+            const feed = document.getElementById('feed-content'); feed.innerHTML = "";
+            const logs = []; snap.forEach(c => { logs.push(c.val()); });
+            logs.reverse().forEach(l => {
+                const entry = document.createElement('div');
+                entry.className = 'feed-entry';
+                // Logs now show the full title: Name, Rank of the Finger
+                const logHeader = l.finger ? `${sanitize(l.user)}, ${sanitize(l.rank)} of the ${sanitize(l.finger)}` : `${sanitize(l.user)}, ${sanitize(l.rank)}`;
+                entry.innerHTML = `<b>${logHeader}:</b> ${sanitize(l.action)} against <b>${sanitize(l.target)}</b>.`;
+                feed.appendChild(entry);
+            });
+        });
 
         const publishV = async () => {
             const t = document.getElementById('targetName').value.trim(), s = document.getElementById('sinDesc').value.trim(), v = document.getElementById('vDesc').value.trim();
             if(!t || !s || !v) return;
             await push(ref(db, `middle_registry/${t}`), { sin: s, action: v });
-            await push(ref(db, 'middle_logs'), { user: currentSib?currentSib.display_name:"Anonymous", rank: currentSib?currentSib.rank:"Stranger", action: "Recorded a sin", target: t });
+            await push(ref(db, 'middle_logs'), { 
+                user: currentSib ? currentSib.display_name : "Anonymous", 
+                rank: currentSib ? currentSib.rank : "Stranger", 
+                finger: currentSib ? currentSib.finger : "Void",
+                action: "Recorded a sin", 
+                target: t 
+            });
             toggleVEntry(false);
             document.getElementById('targetName').value = ""; document.getElementById('sinDesc').value = ""; document.getElementById('vDesc').value = "";
         };
 
-        const completeV = async (name, vId) => {
-            await remove(ref(db, `middle_registry/${name}/${vId}`));
-            const check = await get(ref(db, `middle_registry/${name}`));
-            if(!check.exists()) await remove(ref(db, `middle_registry/${name}`));
-            await push(ref(db, 'middle_logs'), { user: currentSib?currentSib.display_name:"Anonymous", rank: currentSib?currentSib.rank:"Stranger", action: "Settled a vengeance", target: name });
-        };
-
-        const toggleAuth = () => {
-            const m = document.getElementById('auth-modal');
-            const btn = document.getElementById('auth-toggle-btn');
-            m.style.display = m.style.display === 'block' ? 'none' : 'block';
-            if(currentSib) btn.innerText = (m.style.display === 'block') ? "COLLAPSE INFO" : "EXPAND INFO";
-        };
-
-        const toggleVEntry = (s) => document.getElementById('v-entry-modal').style.display = s ? 'block' : 'none';
-
-        // --- EVENT LISTENERS ---
-        document.getElementById('newVBtn').onclick = () => toggleVEntry(true);
-        document.getElementById('publishVBtn').onclick = publishV;
-        document.getElementById('cancelVBtn').onclick = () => toggleVEntry(false);
-        document.getElementById('auth-toggle-btn').onclick = toggleAuth;
-        document.getElementById('loginBtn').onclick = login;
-        document.getElementById('cancelAuthBtn').onclick = toggleAuth;
-        document.getElementById('logoutBtn').onclick = () => location.reload();
-        document.getElementById('regSibBtn').onclick = async () => {
-            const d = document.getElementById('regD').value, u = document.getElementById('regU').value, p = document.getElementById('regP').value, r = document.getElementById('regR').value;
-            if(!u || !p) return;
-            await set(ref(db, `middle_users/${u}`), { display_name: d, password: p, rank: r });
-            alert("Registered.");
-        };
+        // ... [Include the rest of your video and UI functions here] ...
+        // Ensure you keep your existing toggleAuth, toggleVEntry, filterNames, and completeV functions.
         
-        window.filterNames = () => window.renderRegistry(document.getElementById('searchBar').value);
+        document.getElementById('loginBtn').onclick = login;
+        document.getElementById('logoutBtn').onclick = () => location.reload();
+        // ... [Rest of Event Listeners]
     </script>
-</body>
-</html>
