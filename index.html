@@ -104,28 +104,28 @@
         <div class="registry-container">
             <div class="search-area">
                 <input type="text" id="searchBar" placeholder="SEARCH REGISTRY..." oninput="window.filterNames()">
-                <button class="gold-btn" onclick="window.toggleVEntry(true)">+ NEW VENGEANCE</button>
+                <button class="gold-btn" id="newVBtn">+ NEW VENGEANCE</button>
             </div>
             <div id="registry-list"></div>
         </div>
     </div>
 
     <a href="https://thering1.github.io/thering.github.io/" style="left:20px;" class="nav-btn">THE RING</a>
-    <button id="auth-toggle-btn" style="right:20px;" class="nav-btn" onclick="window.handleAuthToggle()">SIGN IN</button>
+    <button id="auth-toggle-btn" style="right:20px;" class="nav-btn">SIGN IN</button>
 
     <div id="auth-modal">
         <div id="login-view">
             <h2 style="font-family:'Bangers'">IDENTIFY SIBLING</h2>
             <input type="text" id="uIn" placeholder="Username" class="admin-input"><br>
             <input type="password" id="pIn" placeholder="Password" class="admin-input"><br>
-            <button class="gold-btn" onclick="window.login()">ENTER</button>
-            <button onclick="window.handleAuthToggle()" style="color:var(--gold); background:none; border:none; cursor:pointer; margin-left:10px;">CANCEL</button>
+            <button class="gold-btn" id="loginBtn">ENTER</button>
+            <button id="cancelAuthBtn" style="color:var(--gold); background:none; border:none; cursor:pointer; margin-left:10px;">CANCEL</button>
         </div>
 
         <div id="admin-view" style="display:none;">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--gold); padding-bottom:10px;">
                 <h2 id="sib-welcome" style="font-family:'Bangers'; margin:0;"></h2>
-                <button onclick="window.logout()" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold;">LOGOUT</button>
+                <button id="logoutBtn" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold;">LOGOUT</button>
             </div>
             <div id="great-tools" style="display:none; margin-top:20px;">
                 <h3 style="font-family:'Bangers'">SIBLING MANAGEMENT</h3>
@@ -134,7 +134,7 @@
                     <input type="text" id="regU" placeholder="Username" style="width:20%">
                     <input type="text" id="regP" placeholder="Password" style="width:20%">
                     <input type="text" id="regR" placeholder="Rank" style="width:20%">
-                    <button onclick="window.registerSib()" class="gold-btn" style="font-size:0.7rem; padding:5px 10px;">CREATE</button>
+                    <button id="regSibBtn" class="gold-btn" style="font-size:0.7rem; padding:5px 10px;">CREATE</button>
                 </div>
                 <table>
                     <thead><tr><th>Name</th><th>User</th><th>Pass</th><th>Rank</th><th>Actions</th></tr></thead>
@@ -149,8 +149,8 @@
         <input type="text" id="targetName" placeholder="TARGET NAME" class="admin-input">
         <textarea id="sinDesc" placeholder="THE SIN" class="admin-input" rows="3"></textarea>
         <textarea id="vDesc" placeholder="THE VENGEANCE" class="admin-input" rows="3"></textarea>
-        <button class="gold-btn" onclick="window.publishV()">PUBLISH</button>
-        <button onclick="window.toggleVEntry(false)" style="color:var(--gold); background:none; border:none; cursor:pointer; margin-left:10px;">CANCEL</button>
+        <button class="gold-btn" id="publishVBtn">PUBLISH</button>
+        <button id="cancelVBtn" style="color:var(--gold); background:none; border:none; cursor:pointer; margin-left:10px;">CANCEL</button>
     </div>
 
     <script type="module">
@@ -172,17 +172,16 @@
         let currentSib = null;
         let registry = {};
 
-        // --- XSS PROTECTION HELPER ---
         const sanitize = (str) => {
             const div = document.createElement('div');
             div.textContent = str || "";
             return div.innerHTML;
         };
 
-        // --- BACKGROUND VIDEO LOGIC ---
+        // --- VIDEO LOGIC ---
         const videoElement = document.getElementById('bg-video');
         let lastVideo = 0;
-        window.shuffleBackground = () => {
+        const shuffleBackground = () => {
             let randomIndex;
             do { randomIndex = Math.floor(Math.random() * 6) + 1; } while (randomIndex === lastVideo);
             lastVideo = randomIndex;
@@ -190,10 +189,10 @@
             videoElement.load();
             videoElement.play().catch(() => {});
         };
-        videoElement.addEventListener('ended', window.shuffleBackground);
-        window.shuffleBackground();
+        videoElement.addEventListener('ended', shuffleBackground);
+        shuffleBackground();
 
-        // --- FIREBASE SYNC (AUDIT LOG) ---
+        // --- FIREBASE SYNC ---
         onValue(ref(db, 'middle_logs'), snap => {
             const feed = document.getElementById('feed-content'); 
             feed.innerHTML = "";
@@ -201,7 +200,7 @@
             logs.reverse().forEach(l => {
                 const entry = document.createElement('div');
                 entry.className = 'feed-entry';
-                entry.innerHTML = `<b>${sanitize(l.user)}, ${sanitize(l.rank)} of the Middle:</b> ${sanitize(l.action)} against <b>${sanitize(l.target)}</b>.`;
+                entry.innerHTML = `<b>${sanitize(l.user)}, ${sanitize(l.rank)}:</b> ${sanitize(l.action)} against <b>${sanitize(l.target)}</b>.`;
                 feed.appendChild(entry);
             });
         });
@@ -211,20 +210,33 @@
             window.renderRegistry();
         });
 
+        // --- RENDER REGISTRY (FIXED FOR APOSTROPHES) ---
         window.renderRegistry = (filter = "") => {
-            const list = document.getElementById('registry-list'); list.innerHTML = "";
+            const list = document.getElementById('registry-list'); 
+            list.innerHTML = "";
+            
             Object.keys(registry).sort().forEach(name => {
                 if (filter && !name.toLowerCase().includes(filter.toLowerCase())) return;
                 
                 const entry = document.createElement('div');
                 entry.className = 'name-entry';
-                const safeID = name.replace(/\s/g,'_');
                 
-                entry.innerHTML = `<div class="name-header" onclick="window.toggleVSub('${safeID}')"><span>> ${sanitize(name)}</span></div>
-                                   <div id="sub-${safeID}" class="v-sublist"></div>`;
+                const header = document.createElement('div');
+                header.className = 'name-header';
+                header.innerHTML = `<span>> ${sanitize(name)}</span>`;
+                
+                const sublist = document.createElement('div');
+                sublist.className = 'v-sublist';
+                
+                // Toggle sublist without using inline onclick strings
+                header.addEventListener('click', () => {
+                    sublist.style.display = sublist.style.display === 'block' ? 'none' : 'block';
+                });
+
+                entry.appendChild(header);
+                entry.appendChild(sublist);
                 list.appendChild(entry);
                 
-                const sub = document.getElementById(`sub-${safeID}`);
                 Object.keys(registry[name]).forEach(vId => {
                     const v = registry[name][vId];
                     const vDiv = document.createElement('div');
@@ -236,16 +248,16 @@
                     compBtn.className = "gold-btn";
                     compBtn.style.cssText = "font-size:0.7rem; padding:5px; margin-top:10px;";
                     compBtn.textContent = "COMPLETED VENGEANCE";
-                    compBtn.onclick = () => window.completeV(name, vId);
+                    compBtn.addEventListener('click', () => completeV(name, vId));
                     
                     vDiv.appendChild(compBtn);
-                    sub.appendChild(vDiv);
+                    sublist.appendChild(vDiv);
                 });
             });
         };
 
-        // --- AUTH & ADMIN ---
-        window.login = async () => {
+        // --- ACTIONS ---
+        const login = async () => {
             const u = document.getElementById('uIn').value, p = document.getElementById('pIn').value;
             const snap = await get(ref(db, `middle_users/${u}`));
             if(snap.exists() && snap.val().password === p) {
@@ -274,7 +286,7 @@
                     const actionTd = document.createElement('td');
                     const saveBtn = document.createElement('button');
                     saveBtn.textContent = "SAVE"; saveBtn.style.fontSize = "0.6rem";
-                    saveBtn.onclick = () => window.saveSib(u);
+                    saveBtn.onclick = () => saveSib(u);
                     actionTd.appendChild(saveBtn);
                     row.appendChild(actionTd);
                     body.appendChild(row);
@@ -282,47 +294,53 @@
             });
         }
 
-        window.registerSib = async () => {
-            const d = document.getElementById('regD').value, u = document.getElementById('regU').value, p = document.getElementById('regP').value, r = document.getElementById('regR').value;
-            if(!u || !p) return;
-            await set(ref(db, `middle_users/${u}`), { display_name: d, password: p, rank: r });
-            alert("Registered.");
-        };
-
-        window.saveSib = async (u) => {
+        const saveSib = async (u) => {
             const d = document.getElementById(`ed-d-${u}`).value, p = document.getElementById(`ed-p-${u}`).value, r = document.getElementById(`ed-r-${u}`).value;
             await set(ref(db, `middle_users/${u}`), { display_name: d, password: p, rank: r });
             alert("Updated.");
         };
 
-        window.handleAuthToggle = () => {
-            const m = document.getElementById('auth-modal');
-            const btn = document.getElementById('auth-toggle-btn');
-            m.style.display = m.style.display === 'block' ? 'none' : 'block';
-            if(currentSib) btn.innerText = (m.style.display === 'block') ? "COLLAPSE INFO" : "EXPAND INFO";
-        };
-
-        // --- ACTIONS ---
-        window.publishV = async () => {
+        const publishV = async () => {
             const t = document.getElementById('targetName').value.trim(), s = document.getElementById('sinDesc').value.trim(), v = document.getElementById('vDesc').value.trim();
             if(!t || !s || !v) return;
             await push(ref(db, `middle_registry/${t}`), { sin: s, action: v });
             await push(ref(db, 'middle_logs'), { user: currentSib?currentSib.display_name:"Anonymous", rank: currentSib?currentSib.rank:"Stranger", action: "Recorded a sin", target: t });
-            window.toggleVEntry(false);
+            toggleVEntry(false);
             document.getElementById('targetName').value = ""; document.getElementById('sinDesc').value = ""; document.getElementById('vDesc').value = "";
         };
 
-        window.completeV = async (name, vId) => {
+        const completeV = async (name, vId) => {
             await remove(ref(db, `middle_registry/${name}/${vId}`));
             const check = await get(ref(db, `middle_registry/${name}`));
             if(!check.exists()) await remove(ref(db, `middle_registry/${name}`));
             await push(ref(db, 'middle_logs'), { user: currentSib?currentSib.display_name:"Anonymous", rank: currentSib?currentSib.rank:"Stranger", action: "Settled a vengeance", target: name });
         };
 
-        window.toggleVSub = (n) => { const s = document.getElementById(`sub-${n}`); s.style.display = s.style.display === 'block' ? 'none' : 'block'; };
-        window.toggleVEntry = (s) => document.getElementById('v-entry-modal').style.display = s ? 'block' : 'none';
+        const toggleAuth = () => {
+            const m = document.getElementById('auth-modal');
+            const btn = document.getElementById('auth-toggle-btn');
+            m.style.display = m.style.display === 'block' ? 'none' : 'block';
+            if(currentSib) btn.innerText = (m.style.display === 'block') ? "COLLAPSE INFO" : "EXPAND INFO";
+        };
+
+        const toggleVEntry = (s) => document.getElementById('v-entry-modal').style.display = s ? 'block' : 'none';
+
+        // --- EVENT LISTENERS ---
+        document.getElementById('newVBtn').onclick = () => toggleVEntry(true);
+        document.getElementById('publishVBtn').onclick = publishV;
+        document.getElementById('cancelVBtn').onclick = () => toggleVEntry(false);
+        document.getElementById('auth-toggle-btn').onclick = toggleAuth;
+        document.getElementById('loginBtn').onclick = login;
+        document.getElementById('cancelAuthBtn').onclick = toggleAuth;
+        document.getElementById('logoutBtn').onclick = () => location.reload();
+        document.getElementById('regSibBtn').onclick = async () => {
+            const d = document.getElementById('regD').value, u = document.getElementById('regU').value, p = document.getElementById('regP').value, r = document.getElementById('regR').value;
+            if(!u || !p) return;
+            await set(ref(db, `middle_users/${u}`), { display_name: d, password: p, rank: r });
+            alert("Registered.");
+        };
+        
         window.filterNames = () => window.renderRegistry(document.getElementById('searchBar').value);
-        window.logout = () => location.reload();
     </script>
 </body>
 </html>
