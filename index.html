@@ -12,6 +12,7 @@
             --banner-purple: #2e004f;
             --void-purple: #1a002e; 
             --gold: #ffd700;
+            --soft-white: #f4f4f4;
         }
 
         body { 
@@ -26,29 +27,16 @@
         /* Global Video Background Container */
         #video-container {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: -1; /* Layered behind all UI */
-            background: var(--void-purple);
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1; background: var(--void-purple);
             overflow: hidden;
         }
 
-        #bg-video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* Ensures video fills screen edges */
-            opacity: 0.45; /* Balanced for atmosphere and legibility */
-        }
+        #bg-video { width: 100%; height: 100%; object-fit: cover; opacity: 0.45; }
 
-        /* UI Structure */
         .banner { 
-            background: var(--banner-purple); 
-            padding: 20px; text-align: center; 
-            border-bottom: 5px solid var(--gold);
-            z-index: 100;
-            position: relative;
+            background: var(--banner-purple); padding: 20px; text-align: center; 
+            border-bottom: 5px solid var(--gold); z-index: 100; position: relative;
         }
 
         h1 { 
@@ -60,34 +48,41 @@
         .main-layout { display: flex; flex-grow: 1; overflow: hidden; position: relative; }
 
         #live-feed {
-            width: 320px;
-            background: rgba(46, 0, 79, 0.9); /* Higher opacity for sidebar readability */
-            border-right: 2px solid var(--gold);
-            padding: 15px;
-            overflow-y: auto;
-            z-index: 10;
+            width: 320px; background: rgba(46, 0, 79, 0.9); 
+            border-right: 2px solid var(--gold); padding: 15px;
+            overflow-y: auto; z-index: 10;
         }
+
+        .feed-header { font-family: 'Bangers'; font-size: 1.8rem; text-align: center; border-bottom: 2px solid var(--gold); margin-bottom: 15px; }
+        .feed-entry { margin-bottom: 12px; line-height: 1.4; border-bottom: 1px solid rgba(255,215,0,0.1); padding-bottom: 8px; color: var(--soft-white); font-size: 0.85rem;}
 
         .registry-container { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-        
-        #registry-list { 
-            flex-grow: 1; overflow-y: auto; 
-            padding: 20px 5%; z-index: 5; 
-        }
+        #registry-list { flex-grow: 1; overflow-y: auto; padding: 20px 5%; z-index: 5; }
 
         .search-area { padding: 20px; text-align: center; z-index: 5; }
-        
         #searchBar { 
             width: 60%; padding: 12px; background: rgba(0,0,0,0.85); 
             border: 2px solid var(--gold); color: var(--gold); 
-            font-size: 1.3rem; font-family: 'Bangers', cursive;
+            font-size: 1.3rem; font-family: 'Bangers', cursive; outline: none;
         }
 
-        /* Buttons & Components */
         .gold-btn { background: var(--gold); color: var(--banner-purple); border: none; padding: 10px 25px; cursor: pointer; font-family: 'Bangers', cursive; font-size: 1.2rem; }
         .nav-btn { position: fixed; bottom: 20px; padding: 10px 20px; border: 2px solid var(--gold); background: var(--banner-purple); color: var(--gold); font-family: 'Bangers'; z-index: 2000; text-decoration: none; font-size: 0.9rem; }
         
         .name-entry { border: 1px solid var(--gold); margin-bottom: 10px; background: rgba(0,0,0,0.8); }
+        .name-header { padding: 15px; font-size: 1.8rem; cursor: pointer; font-family: 'Bangers', cursive; display: flex; justify-content: space-between; }
+        .v-sublist { display: none; padding: 20px; border-top: 1px solid var(--gold); background: rgba(0,0,0,0.4); }
+
+        /* Modals */
+        #auth-modal, #v-entry-modal { 
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--banner-purple); border: 4px solid var(--gold); 
+            padding: 30px; z-index: 3000; width: 650px; max-height: 80vh; overflow-y: auto;
+            box-shadow: 15px 15px 0px #000;
+        }
+        .admin-input { background: transparent; border: 1px solid var(--gold); color: white; padding: 8px; margin-bottom: 10px; width: 95%; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 15px; color: white;}
+        th, td { border: 1px solid var(--gold); padding: 5px; text-align: left; }
     </style>
 </head>
 <body>
@@ -102,7 +97,7 @@
 
     <div class="main-layout">
         <div id="live-feed">
-            <div style="font-family: 'Bangers'; font-size: 1.8rem; text-align: center; border-bottom: 2px solid var(--gold); margin-bottom: 15px;">AUDIT LOG</div>
+            <div class="feed-header">AUDIT LOG</div>
             <div id="feed-content"></div>
         </div>
 
@@ -118,27 +113,188 @@
     <a href="https://thering1.github.io/thering.github.io/" style="left:20px;" class="nav-btn">THE RING</a>
     <button id="auth-toggle-btn" style="right:20px;" class="nav-btn" onclick="window.handleAuthToggle()">SIGN IN</button>
 
-    <script>
+    <div id="auth-modal">
+        <div id="login-view">
+            <h2 style="font-family:'Bangers'">IDENTIFY SIBLING</h2>
+            <input type="text" id="uIn" placeholder="Username" class="admin-input"><br>
+            <input type="password" id="pIn" placeholder="Password" class="admin-input"><br>
+            <button class="gold-btn" onclick="window.login()">ENTER</button>
+            <button onclick="window.handleAuthToggle()" style="color:var(--gold); background:none; border:none; cursor:pointer; margin-left:10px;">CANCEL</button>
+        </div>
+
+        <div id="admin-view" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--gold); padding-bottom:10px;">
+                <h2 id="sib-welcome" style="font-family:'Bangers'; margin:0;"></h2>
+                <button onclick="window.logout()" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold;">LOGOUT</button>
+            </div>
+            <div id="great-tools" style="display:none; margin-top:20px;">
+                <h3 style="font-family:'Bangers'">SIBLING MANAGEMENT</h3>
+                <div style="background:rgba(0,0,0,0.3); padding:10px; border:1px dashed var(--gold); margin-bottom:10px;">
+                    <input type="text" id="regD" placeholder="Display Name" style="width:20%">
+                    <input type="text" id="regU" placeholder="Username" style="width:20%">
+                    <input type="text" id="regP" placeholder="Password" style="width:20%">
+                    <input type="text" id="regR" placeholder="Rank" style="width:20%">
+                    <button onclick="window.registerSib()" class="gold-btn" style="font-size:0.7rem; padding:5px 10px;">CREATE</button>
+                </div>
+                <table>
+                    <thead><tr><th>Name</th><th>User</th><th>Pass</th><th>Rank</th><th>Actions</th></tr></thead>
+                    <tbody id="sib-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="v-entry-modal">
+        <h2 style="font-family:'Bangers'">RECORD SIN</h2>
+        <input type="text" id="targetName" placeholder="TARGET NAME" class="admin-input">
+        <textarea id="sinDesc" placeholder="THE SIN" class="admin-input" rows="3"></textarea>
+        <textarea id="vDesc" placeholder="THE VENGEANCE" class="admin-input" rows="3"></textarea>
+        <button class="gold-btn" onclick="window.publishV()">PUBLISH</button>
+        <button onclick="window.toggleVEntry(false)" style="color:var(--gold); background:none; border:none; cursor:pointer; margin-left:10px;">CANCEL</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, push, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCHSN6HiR50_sFT7L8p0bOUVDBb3KBpJiY",
+            authDomain: "the-ring-97f20.firebaseapp.com",
+            projectId: "the-ring-97f20",
+            storageBucket: "the-ring-97f20.firebasestorage.app",
+            messagingSenderId: "254314705601",
+            appId: "1:254314705601:web:80eea55a563f7a01f95a40",
+            databaseURL: "https://the-ring-97f20-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        let currentSib = null;
+        let registry = {};
+
+        // --- BACKGROUND VIDEO LOGIC ---
         const videoElement = document.getElementById('bg-video');
-        
-        function shuffleBackground() {
-            // Randomly selects a number between 1 and 6
-            const randomIndex = Math.floor(Math.random() * 6) + 1;
-            const videoPath = `middle compilation (${randomIndex}).mp4`;
-            
-            videoElement.src = videoPath;
+        let lastVideo = 0;
+        window.shuffleBackground = () => {
+            let randomIndex;
+            do { randomIndex = Math.floor(Math.random() * 6) + 1; } while (randomIndex === lastVideo);
+            lastVideo = randomIndex;
+            videoElement.src = `middle compilation (${randomIndex}).mp4`;
             videoElement.load();
-            videoElement.play().catch(err => {
-                console.log("Awaiting user interaction for autoplay.");
+            videoElement.play().catch(() => {});
+        };
+        videoElement.addEventListener('ended', window.shuffleBackground);
+        window.shuffleBackground();
+
+        // --- FIREBASE SYNC ---
+        onValue(ref(db, 'middle_logs'), snap => {
+            const feed = document.getElementById('feed-content'); feed.innerHTML = "";
+            const logs = []; snap.forEach(c => { logs.push(c.val()); });
+            logs.reverse().forEach(l => {
+                feed.innerHTML += `<div class="feed-entry"><b>${l.user}, ${l.rank} of the Middle:</b> ${l.action} against <b>${l.target}</b>.</div>`;
+            });
+        });
+
+        onValue(ref(db, 'middle_registry'), snap => {
+            registry = snap.val() || {};
+            window.renderRegistry();
+        });
+
+        window.renderRegistry = (filter = "") => {
+            const list = document.getElementById('registry-list'); list.innerHTML = "";
+            Object.keys(registry).sort().forEach(name => {
+                if (filter && !name.toLowerCase().includes(filter.toLowerCase())) return;
+                const entry = document.createElement('div');
+                entry.className = 'name-entry';
+                const safeName = name.replace(/\s/g,'_');
+                entry.innerHTML = `<div class="name-header" onclick="window.toggleVSub('${safeName}')"><span>> ${name}</span></div>
+                                   <div id="sub-${safeName}" class="v-sublist"></div>`;
+                list.appendChild(entry);
+                const sub = document.getElementById(`sub-${safeName}`);
+                Object.keys(registry[name]).forEach(vId => {
+                    const v = registry[name][vId];
+                    sub.innerHTML += `<div style="margin-bottom:15px; border-left:3px solid var(--gold); padding-left:15px;">
+                        <div style="color:#ff6b6b; font-weight:bold;">SIN: ${v.sin}</div>
+                        <div style="color:white; margin: 5px 0;">VENGEANCE: ${v.action}</div>
+                        <button onclick="window.completeV('${name}','${vId}')" class="gold-btn" style="font-size:0.7rem; padding:5px; margin-top:10px;">COMPLETED VENGEANCE</button>
+                    </div>`;
+                });
+            });
+        };
+
+        // --- AUTH & ADMIN ---
+        window.login = async () => {
+            const u = document.getElementById('uIn').value, p = document.getElementById('pIn').value;
+            const snap = await get(ref(db, `middle_users/${u}`));
+            if(snap.exists() && snap.val().password === p) {
+                currentSib = snap.val(); currentSib.username = u;
+                document.getElementById('login-view').style.display = 'none';
+                document.getElementById('admin-view').style.display = 'block';
+                document.getElementById('sib-welcome').innerText = `${currentSib.display_name}, ${currentSib.rank}`;
+                document.getElementById('auth-toggle-btn').innerText = "COLLAPSE INFO";
+                if(currentSib.rank.toLowerCase().includes("great") || currentSib.rank.toLowerCase().includes("lord")) {
+                    document.getElementById('great-tools').style.display = 'block';
+                    loadSiblings();
+                }
+            } else alert("Access Denied.");
+        };
+
+        function loadSiblings() {
+            onValue(ref(db, 'middle_users'), snap => {
+                const body = document.getElementById('sib-table-body'); body.innerHTML = "";
+                snap.forEach(child => {
+                    const u = child.key; const d = child.val();
+                    body.innerHTML += `<tr>
+                        <td><input type="text" id="ed-d-${u}" value="${d.display_name}" style="width:70px"></td>
+                        <td>${u}</td>
+                        <td><input type="text" id="ed-p-${u}" value="${d.password}" style="width:70px"></td>
+                        <td><input type="text" id="ed-r-${u}" value="${d.rank}" style="width:70px"></td>
+                        <td><button onclick="window.saveSib('${u}')" style="font-size:0.6rem;">SAVE</button></td>
+                    </tr>`;
+                });
             });
         }
 
-        // Initialize the cycle
-        shuffleBackground();
+        window.registerSib = async () => {
+            const d = document.getElementById('regD').value, u = document.getElementById('regU').value, p = document.getElementById('regP').value, r = document.getElementById('regR').value;
+            if(!u || !p) return;
+            await set(ref(db, `middle_users/${u}`), { display_name: d, password: p, rank: r });
+            alert("Registered.");
+        };
 
-        // Listen for the end of the current clip to play the next random one
-        videoElement.addEventListener('ended', shuffleBackground);
+        window.saveSib = async (u) => {
+            const d = document.getElementById(`ed-d-${u}`).value, p = document.getElementById(`ed-p-${u}`).value, r = document.getElementById(`ed-r-${u}`).value;
+            await set(ref(db, `middle_users/${u}`), { display_name: d, password: p, rank: r });
+            alert("Updated.");
+        };
+
+        window.handleAuthToggle = () => {
+            const m = document.getElementById('auth-modal');
+            const btn = document.getElementById('auth-toggle-btn');
+            m.style.display = m.style.display === 'block' ? 'none' : 'block';
+            if(currentSib) btn.innerText = (m.style.display === 'block') ? "COLLAPSE INFO" : "EXPAND INFO";
+        };
+
+        // --- ACTIONS ---
+        window.publishV = async () => {
+            const t = document.getElementById('targetName').value.trim(), s = document.getElementById('sinDesc').value.trim(), v = document.getElementById('vDesc').value.trim();
+            if(!t || !s || !v) return;
+            await push(ref(db, `middle_registry/${t}`), { sin: s, action: v });
+            await push(ref(db, 'middle_logs'), { user: currentSib?currentSib.display_name:"Anonymous", rank: currentSib?currentSib.rank:"Stranger", action: "Recorded a sin", target: t });
+            window.toggleVEntry(false);
+        };
+
+        window.completeV = async (name, vId) => {
+            await remove(ref(db, `middle_registry/${name}/${vId}`));
+            const check = await get(ref(db, `middle_registry/${name}`));
+            if(!check.exists()) await remove(ref(db, `middle_registry/${name}`));
+            await push(ref(db, 'middle_logs'), { user: currentSib?currentSib.display_name:"Anonymous", rank: currentSib?currentSib.rank:"Stranger", action: "Settled a vengeance", target: name });
+        };
+
+        window.toggleVSub = (n) => { const s = document.getElementById(`sub-${n}`); s.style.display = s.style.display === 'block' ? 'none' : 'block'; };
+        window.toggleVEntry = (s) => document.getElementById('v-entry-modal').style.display = s ? 'block' : 'none';
+        window.filterNames = () => window.renderRegistry(document.getElementById('searchBar').value);
+        window.logout = () => location.reload();
     </script>
-
-    </body>
+</body>
 </html>
