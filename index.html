@@ -172,6 +172,13 @@
         let currentSib = null;
         let registry = {};
 
+        // --- XSS PROTECTION HELPER ---
+        const sanitize = (str) => {
+            const div = document.createElement('div');
+            div.textContent = str || "";
+            return div.innerHTML;
+        };
+
         // --- BACKGROUND VIDEO LOGIC ---
         const videoElement = document.getElementById('bg-video');
         let lastVideo = 0;
@@ -186,12 +193,16 @@
         videoElement.addEventListener('ended', window.shuffleBackground);
         window.shuffleBackground();
 
-        // --- FIREBASE SYNC ---
+        // --- FIREBASE SYNC (AUDIT LOG) ---
         onValue(ref(db, 'middle_logs'), snap => {
-            const feed = document.getElementById('feed-content'); feed.innerHTML = "";
+            const feed = document.getElementById('feed-content'); 
+            feed.innerHTML = "";
             const logs = []; snap.forEach(c => { logs.push(c.val()); });
             logs.reverse().forEach(l => {
-                feed.innerHTML += `<div class="feed-entry"><b>${l.user}, ${l.rank} of the Middle:</b> ${l.action} against <b>${l.target}</b>.</div>`;
+                const entry = document.createElement('div');
+                entry.className = 'feed-entry';
+                entry.innerHTML = `<b>${sanitize(l.user)}, ${sanitize(l.rank)} of the Middle:</b> ${sanitize(l.action)} against <b>${sanitize(l.target)}</b>.`;
+                feed.appendChild(entry);
             });
         });
 
@@ -204,20 +215,31 @@
             const list = document.getElementById('registry-list'); list.innerHTML = "";
             Object.keys(registry).sort().forEach(name => {
                 if (filter && !name.toLowerCase().includes(filter.toLowerCase())) return;
+                
                 const entry = document.createElement('div');
                 entry.className = 'name-entry';
-                const safeName = name.replace(/\s/g,'_');
-                entry.innerHTML = `<div class="name-header" onclick="window.toggleVSub('${safeName}')"><span>> ${name}</span></div>
-                                   <div id="sub-${safeName}" class="v-sublist"></div>`;
+                const safeID = name.replace(/\s/g,'_');
+                
+                entry.innerHTML = `<div class="name-header" onclick="window.toggleVSub('${safeID}')"><span>> ${sanitize(name)}</span></div>
+                                   <div id="sub-${safeID}" class="v-sublist"></div>`;
                 list.appendChild(entry);
-                const sub = document.getElementById(`sub-${safeName}`);
+                
+                const sub = document.getElementById(`sub-${safeID}`);
                 Object.keys(registry[name]).forEach(vId => {
                     const v = registry[name][vId];
-                    sub.innerHTML += `<div style="margin-bottom:15px; border-left:3px solid var(--gold); padding-left:15px;">
-                        <div style="color:#ff6b6b; font-weight:bold;">SIN: ${v.sin}</div>
-                        <div style="color:white; margin: 5px 0;">VENGEANCE: ${v.action}</div>
-                        <button onclick="window.completeV('${name}','${vId}')" class="gold-btn" style="font-size:0.7rem; padding:5px; margin-top:10px;">COMPLETED VENGEANCE</button>
-                    </div>`;
+                    const vDiv = document.createElement('div');
+                    vDiv.style.cssText = "margin-bottom:15px; border-left:3px solid var(--gold); padding-left:15px;";
+                    vDiv.innerHTML = `<div style="color:#ff6b6b; font-weight:bold;">SIN: ${sanitize(v.sin)}</div>
+                                      <div style="color:white; margin: 5px 0;">VENGEANCE: ${sanitize(v.action)}</div>`;
+                    
+                    const compBtn = document.createElement('button');
+                    compBtn.className = "gold-btn";
+                    compBtn.style.cssText = "font-size:0.7rem; padding:5px; margin-top:10px;";
+                    compBtn.textContent = "COMPLETED VENGEANCE";
+                    compBtn.onclick = () => window.completeV(name, vId);
+                    
+                    vDiv.appendChild(compBtn);
+                    sub.appendChild(vDiv);
                 });
             });
         };
@@ -244,13 +266,18 @@
                 const body = document.getElementById('sib-table-body'); body.innerHTML = "";
                 snap.forEach(child => {
                     const u = child.key; const d = child.val();
-                    body.innerHTML += `<tr>
-                        <td><input type="text" id="ed-d-${u}" value="${d.display_name}" style="width:70px"></td>
-                        <td>${u}</td>
-                        <td><input type="text" id="ed-p-${u}" value="${d.password}" style="width:70px"></td>
-                        <td><input type="text" id="ed-r-${u}" value="${d.rank}" style="width:70px"></td>
-                        <td><button onclick="window.saveSib('${u}')" style="font-size:0.6rem;">SAVE</button></td>
-                    </tr>`;
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td><input type="text" id="ed-d-${u}" value="${sanitize(d.display_name)}" style="width:70px"></td>
+                                     <td>${sanitize(u)}</td>
+                                     <td><input type="text" id="ed-p-${u}" value="${sanitize(d.password)}" style="width:70px"></td>
+                                     <td><input type="text" id="ed-r-${u}" value="${sanitize(d.rank)}" style="width:70px"></td>`;
+                    const actionTd = document.createElement('td');
+                    const saveBtn = document.createElement('button');
+                    saveBtn.textContent = "SAVE"; saveBtn.style.fontSize = "0.6rem";
+                    saveBtn.onclick = () => window.saveSib(u);
+                    actionTd.appendChild(saveBtn);
+                    row.appendChild(actionTd);
+                    body.appendChild(row);
                 });
             });
         }
@@ -282,6 +309,7 @@
             await push(ref(db, `middle_registry/${t}`), { sin: s, action: v });
             await push(ref(db, 'middle_logs'), { user: currentSib?currentSib.display_name:"Anonymous", rank: currentSib?currentSib.rank:"Stranger", action: "Recorded a sin", target: t });
             window.toggleVEntry(false);
+            document.getElementById('targetName').value = ""; document.getElementById('sinDesc').value = ""; document.getElementById('vDesc').value = "";
         };
 
         window.completeV = async (name, vId) => {
