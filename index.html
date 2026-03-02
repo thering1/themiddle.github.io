@@ -79,11 +79,10 @@
             padding: 30px; z-index: 3000; width: 650px; max-height: 80vh; overflow-y: auto;
             box-shadow: 15px 15px 0px #000;
         }
-        .admin-input { background: transparent; border: 1px solid var(--gold); color: white; padding: 8px; margin-bottom: 10px; width: 95%; }
+        .admin-input { background: transparent; border: 1px solid var(--gold); color: white; padding: 8px; margin-bottom: 10px; width: 95%; font-family: inherit; }
         table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 15px; color: white;}
         th, td { border: 1px solid var(--gold); padding: 5px; text-align: left; }
 
-        /* Floating Tooltip */
         #sin-tooltip {
             position: fixed; display: none; pointer-events: none;
             background: #000; border: 2px solid var(--gold); color: var(--gold);
@@ -107,13 +106,13 @@
     <div class="main-layout">
         <div id="live-feed">
             <div class="feed-header">AUDIT LOG</div>
-            <input type="text" id="logSearchBar" placeholder="SEARCH LOGS..." oninput="window.filterLogs()">
+            <input type="text" id="logSearchBar" placeholder="SEARCH LOGS...">
             <div id="feed-content"></div>
         </div>
 
         <div class="registry-container">
             <div class="search-area">
-                <input type="text" id="searchBar" placeholder="SEARCH REGISTRY..." oninput="window.filterNames()">
+                <input type="text" id="searchBar" placeholder="SEARCH REGISTRY...">
                 <button class="gold-btn" id="newVBtn">+ NEW VENGEANCE</button>
             </div>
             <div id="registry-list"></div>
@@ -181,12 +180,11 @@
 
         const middleApp = initializeApp(middleConfig, "middleApp");
         const accountApp = initializeApp(accountConfig, "accountApp");
-
         const db = getDatabase(middleApp);
         const userDb = getDatabase(accountApp);
 
         let currentSib = null;
-        let registry = {};
+        let registryCache = {};
         let logsCache = [];
 
         const sanitize = (str) => {
@@ -195,14 +193,14 @@
             return div.innerHTML;
         };
 
-        // --- TOOLTIP LOGIC ---
+        // --- TOOLTIP ---
         const tooltip = document.getElementById('sin-tooltip');
         document.addEventListener('mousemove', (e) => {
             tooltip.style.left = (e.clientX + 15) + 'px';
             tooltip.style.top = (e.clientY + 15) + 'px';
         });
 
-        // --- VIDEO LOGIC ---
+        // --- BACKGROUND VIDEO ---
         const videoElement = document.getElementById('bg-video');
         let lastVideo = 0;
         const shuffleBackground = () => {
@@ -216,102 +214,73 @@
         videoElement.addEventListener('ended', shuffleBackground);
         shuffleBackground();
 
-        // --- AUTH ---
-        const login = async () => {
-            const u = document.getElementById('uIn').value, p = document.getElementById('pIn').value;
-            const snap = await get(ref(userDb, `users/${u}`));
-            if(snap.exists() && snap.val().password === p) {
-                currentSib = snap.val(); currentSib.username = u;
-                document.getElementById('login-view').style.display = 'none';
-                document.getElementById('admin-view').style.display = 'block';
-                document.getElementById('sib-welcome').innerText = `${currentSib.display_name}, ${currentSib.rank} of the ${currentSib.finger || 'Void'}`;
-                document.getElementById('auth-toggle-btn').innerText = "COLLAPSE INFO";
-                if(currentSib.rank.toLowerCase().includes("great") || currentSib.rank.toLowerCase().includes("lord")) {
-                    document.getElementById('great-tools').style.display = 'block';
-                    loadSiblings();
-                }
-            } else alert("Access Denied.");
-        };
-
-        function loadSiblings() {
-            onValue(ref(userDb, 'users'), snap => {
-                const body = document.getElementById('sib-table-body'); body.innerHTML = "";
-                snap.forEach(child => {
-                    const u = child.key; const d = child.val();
-                    const row = document.createElement('tr');
-                    row.innerHTML = `<td>${sanitize(d.display_name)}</td><td>${sanitize(u)}</td><td>${sanitize(d.rank)}</td><td>${sanitize(d.finger)}</td>
-                    <td><button onclick="window.removeSib('${u}')" style="color:red; background:none; border:none; cursor:pointer;">[X]</button></td>`;
-                    body.appendChild(row);
-                });
-            });
-        }
-        window.removeSib = (u) => { if(confirm("Exile sibling?")) remove(ref(userDb, `users/${u}`)); };
-
-        // --- SYNC & LOG FILTERS ---
+        // --- LOGS ---
         onValue(ref(db, 'middle_logs'), snap => {
             logsCache = [];
             snap.forEach(c => { logsCache.push(c.val()); });
             logsCache.reverse();
-            window.filterLogs();
+            renderLogs();
         });
 
-        window.filterLogs = () => {
+        const renderLogs = () => {
             const filter = document.getElementById('logSearchBar').value.toLowerCase();
             const feed = document.getElementById('feed-content'); feed.innerHTML = "";
             
             logsCache.forEach(l => {
-                const submitter = `${l.user} ${l.rank} ${l.finger}`.toLowerCase();
-                const target = (l.target || "").toLowerCase();
-                
-                if (filter && !submitter.includes(filter) && !target.includes(filter)) return;
+                const headerText = l.finger ? `${l.user}, ${l.rank} of the ${l.finger}` : `${l.user}, ${l.rank}`;
+                if (filter && !headerText.toLowerCase().includes(filter) && !l.target?.toLowerCase().includes(filter)) return;
 
                 const entry = document.createElement('div');
                 entry.className = 'feed-entry';
-                const header = l.finger ? `${sanitize(l.user)}, ${sanitize(l.rank)} of the ${sanitize(l.finger)}` : `${sanitize(l.user)}, ${sanitize(l.rank)}`;
-                entry.innerHTML = `<b>${header}:</b> ${sanitize(l.action)} against <b>${sanitize(l.target)}</b>.`;
+                entry.innerHTML = `<b>${sanitize(headerText)}:</b> ${sanitize(l.action)} against <b>${sanitize(l.target)}</b>.`;
                 
-                // Tooltip events
                 entry.onmouseenter = () => {
                     tooltip.style.display = 'block';
                     tooltip.innerHTML = `
                         <div style="border-bottom:1px solid gold; margin-bottom:5px; padding-bottom:5px;"><b>TARGET:</b> ${sanitize(l.target)}</div>
-                        <div><b>SUBMITTED BY:</b><br>${header}</div>
                         <div style="margin-top:5px; color:#ff6b6b;"><b>SIN:</b> ${sanitize(l.sin || "Legacy Record")}</div>
                         <div style="margin-top:5px;"><b>PUNISHMENT:</b> ${sanitize(l.punishment || l.action)}</div>
-                        <div style="margin-top:5px; font-size:0.7rem; font-style:italic;"><b>COMPLETED BY:</b> ${sanitize(l.completedBy || "N/A")}</div>
+                        <div style="margin-top:5px; font-size:0.7rem; font-style:italic;"><b>DONE BY:</b> ${sanitize(l.completedBy || "N/A")}</div>
                     `;
                 };
                 entry.onmouseleave = () => tooltip.style.display = 'none';
-                
                 feed.appendChild(entry);
             });
         };
+        document.getElementById('logSearchBar').oninput = renderLogs;
 
+        // --- REGISTRY ---
         onValue(ref(db, 'middle_registry'), snap => {
-            registry = snap.val() || {};
-            window.renderRegistry();
+            registryCache = snap.val() || {};
+            renderRegistry();
         });
 
-        window.renderRegistry = (filter = "") => {
+        const renderRegistry = () => {
+            const filter = document.getElementById('searchBar').value.toLowerCase();
             const list = document.getElementById('registry-list'); list.innerHTML = "";
-            Object.keys(registry).sort().forEach(name => {
-                if (filter && !name.toLowerCase().includes(filter.toLowerCase())) return;
+            
+            Object.keys(registryCache).sort().forEach(name => {
+                if (filter && !name.toLowerCase().includes(filter)) return;
+                
                 const entry = document.createElement('div');
                 entry.className = 'name-entry';
+                
                 const header = document.createElement('div');
                 header.className = 'name-header';
                 header.innerHTML = `<span>> ${sanitize(name)}</span>`;
+                
                 const sublist = document.createElement('div');
                 sublist.className = 'v-sublist';
-                header.addEventListener('click', () => { sublist.style.display = sublist.style.display === 'block' ? 'none' : 'block'; });
-                entry.appendChild(header); entry.appendChild(sublist);
-                list.appendChild(entry);
-                Object.keys(registry[name]).forEach(vId => {
-                    const v = registry[name][vId];
+                
+                header.onclick = () => sublist.style.display = sublist.style.display === 'block' ? 'none' : 'block';
+                
+                Object.keys(registryCache[name]).forEach(vId => {
+                    const v = registryCache[name][vId];
                     const vDiv = document.createElement('div');
                     vDiv.style.cssText = "margin-bottom:15px; border-left:3px solid var(--gold); padding-left:15px;";
                     vDiv.innerHTML = `<div style="color:#ff6b6b; font-weight:bold;">SIN: ${sanitize(v.sin)}</div>
                                       <div style="color:white; margin: 5px 0;">VENGEANCE: ${sanitize(v.action)}</div>`;
+                    
                     const compBtn = document.createElement('button');
                     compBtn.className = "gold-btn"; compBtn.style.cssText = "font-size:0.7rem; padding:5px; margin-top:10px;";
                     compBtn.textContent = "COMPLETED";
@@ -323,37 +292,72 @@
                         });
                         remove(ref(db, `middle_registry/${name}/${vId}`)); 
                     };
-                    vDiv.appendChild(compBtn); sublist.appendChild(vDiv);
+                    vDiv.appendChild(compBtn);
+                    sublist.appendChild(vDiv);
+                });
+
+                entry.appendChild(header); entry.appendChild(sublist);
+                list.appendChild(entry);
+            });
+        };
+        document.getElementById('searchBar').oninput = renderRegistry;
+
+        // --- AUTH ---
+        document.getElementById('loginBtn').onclick = async () => {
+            const u = document.getElementById('uIn').value, p = document.getElementById('pIn').value;
+            const snap = await get(ref(userDb, `users/${u}`));
+            if(snap.exists() && snap.val().password === p) {
+                currentSib = snap.val();
+                document.getElementById('login-view').style.display = 'none';
+                document.getElementById('admin-view').style.display = 'block';
+                document.getElementById('sib-welcome').innerText = `${currentSib.display_name}, ${currentSib.rank}`;
+                if(currentSib.rank.toLowerCase().includes("great") || currentSib.rank.toLowerCase().includes("lord")) {
+                    document.getElementById('great-tools').style.display = 'block';
+                    loadSibs();
+                }
+            } else alert("Access Denied.");
+        };
+
+        const loadSibs = () => {
+            onValue(ref(userDb, 'users'), snap => {
+                const body = document.getElementById('sib-table-body'); body.innerHTML = "";
+                snap.forEach(child => {
+                    const u = child.key; const d = child.val();
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${sanitize(d.display_name)}</td><td>${sanitize(u)}</td><td>${sanitize(d.rank)}</td><td>${sanitize(d.finger)}</td><td id="del-${u}"></td>`;
+                    const delBtn = document.createElement('button');
+                    delBtn.textContent = "[X]"; delBtn.style.color = "red"; delBtn.style.background="none"; delBtn.style.border="none"; delBtn.style.cursor="pointer";
+                    delBtn.onclick = () => { if(confirm(`Exile ${u}?`)) remove(ref(userDb, `users/${u}`)); };
+                    body.appendChild(row);
+                    document.getElementById(`del-${u}`).appendChild(delBtn);
                 });
             });
         };
 
-        const publishV = async () => {
+        // --- RECORDING ---
+        document.getElementById('publishVBtn').onclick = async () => {
             const t = document.getElementById('targetName').value.trim(), s = document.getElementById('sinDesc').value.trim(), v = document.getElementById('vDesc').value.trim();
             if(!t || !s || !v) return;
             await push(ref(db, `middle_registry/${t}`), { sin: s, action: v });
             await push(ref(db, 'middle_logs'), { 
-                user: currentSib?currentSib.display_name:"Anonymous", 
-                rank: currentSib?currentSib.rank:"Stranger",
-                finger: currentSib?currentSib.finger:"Void",
-                action: "Recorded a sin", target: t,
-                sin: s, punishment: v
+                user: currentSib ? currentSib.display_name : "Anonymous", 
+                rank: currentSib ? currentSib.rank : "Stranger",
+                finger: currentSib ? currentSib.finger : "Void",
+                action: "Recorded a sin", target: t, sin: s, punishment: v
             });
             document.getElementById('v-entry-modal').style.display = 'none';
+            document.getElementById('targetName').value = ""; document.getElementById('sinDesc').value = ""; document.getElementById('vDesc').value = "";
         };
 
-        // --- LISTENERS ---
+        // --- UI TOGGLES ---
         document.getElementById('newVBtn').onclick = () => document.getElementById('v-entry-modal').style.display = 'block';
-        document.getElementById('publishVBtn').onclick = publishV;
         document.getElementById('cancelVBtn').onclick = () => document.getElementById('v-entry-modal').style.display = 'none';
         document.getElementById('auth-toggle-btn').onclick = () => {
             const m = document.getElementById('auth-modal');
             m.style.display = m.style.display === 'block' ? 'none' : 'block';
         };
-        document.getElementById('loginBtn').onclick = login;
         document.getElementById('cancelAuthBtn').onclick = () => document.getElementById('auth-modal').style.display = 'none';
         document.getElementById('logoutBtn').onclick = () => location.reload();
-        window.filterNames = () => window.renderRegistry(document.getElementById('searchBar').value);
     </script>
 </body>
 </html>
