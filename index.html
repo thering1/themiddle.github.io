@@ -126,6 +126,7 @@
         <a href="https://thering1.github.io/thering.github.io/" style="left:20px;" class="nav-btn">THE RING</a>
         <a href="https://thering1.github.io/theindex.github.io/" style="left:125px;" class="nav-btn">THE INDEX</a>
         <a href="https://thering1.github.io/thepinky.github.io/" style="left:230px;" class="nav-btn">THE PINKY</a>
+        <a href="https://thering1.github.io/thethumb.github.io/" style="left:335px;" class="nav-btn">THE THUMB</a>
     </div>
 
     <button id="auth-toggle-btn" style="right:20px;" class="nav-btn">SIGN IN</button>
@@ -314,7 +315,6 @@
                     const fingerInfo = (d.finger || "").toLowerCase();
                     const rankInfo = (d.rank || "").toLowerCase();
 
-                    // Search for "Middle" in either finger or rank variant
                     if (fingerInfo.includes("middle") || rankInfo.includes("middle")) {
                         const row = document.createElement('tr');
                         row.innerHTML = `<td>${sanitize(d.display_name)}</td><td>${sanitize(d.rank)}</td><td id="act-${uKey}"></td>`;
@@ -322,7 +322,6 @@
 
                         const actCell = document.getElementById(`act-${uKey}`);
 
-                        // Promote Little -> Big
                         if (rankInfo.includes("little")) {
                             const pBtn = document.createElement('button');
                             pBtn.className = "promote-btn"; pBtn.textContent = "PROMOTE";
@@ -332,7 +331,6 @@
                             };
                             actCell.appendChild(pBtn);
                         }
-                        // Demote Big -> Little
                         if (rankInfo.includes("big")) {
                             const dBtn = document.createElement('button');
                             dBtn.className = "demote-btn"; dBtn.textContent = "DEMOTE";
