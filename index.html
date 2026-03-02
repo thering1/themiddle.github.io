@@ -6,6 +6,7 @@
     <title>The Middle</title>
     <link rel="icon" type="image/png" href="thethumb.png">
     <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     
     <style>
         :root {
@@ -68,7 +69,20 @@
 
         .gold-btn { background: var(--gold); color: var(--banner-purple); border: none; padding: 10px 25px; cursor: pointer; font-family: 'Bangers', cursive; font-size: 1.2rem; transition: 0.2s; }
         .gold-btn:hover { filter: brightness(1.2); }
-        .nav-btn { position: fixed; bottom: 20px; padding: 10px 15px; border: 2px solid var(--gold); background: var(--banner-purple); color: var(--gold); font-family: 'Bangers'; z-index: 2000; text-decoration: none; font-size: 0.8rem; cursor: pointer; }
+
+        /* --- UNIFIED NAVIGATION --- */
+        .nav-btn { 
+            position: fixed; bottom: 20px; 
+            width: 100px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 2000; text-decoration: none; font-size: 0.8rem; cursor: pointer; 
+            font-weight: bold; box-sizing: border-box;
+        }
+
+        .link-ring { font-family: 'Courier New', Courier, monospace; color: black; background: white; border: 1px solid black; }
+        .link-index { font-family: 'Share Tech Mono', monospace; color: #00f2ff; background: black; border: 1px solid #00f2ff; }
+        .link-pinky { font-family: sans-serif; color: #1a241f; background: rgba(141, 163, 153, 1); border: 1px solid rgba(163, 93, 93, 1); }
+        .link-thumb { font-family: sans-serif; color: white; background: #b22222; border: 1px solid #ffcc00; }
         
         .name-entry { border: 1px solid var(--gold); margin-bottom: 10px; background: rgba(0,0,0,0.8); }
         .name-header { padding: 15px; font-size: 1.8rem; cursor: pointer; font-family: 'Bangers', cursive; display: flex; justify-content: space-between; }
@@ -123,13 +137,13 @@
     </div>
 
     <div id="nav-group">
-        <a href="https://thering1.github.io/thering.github.io/" style="left:20px;" class="nav-btn">THE RING</a>
-        <a href="https://thering1.github.io/theindex.github.io/" style="left:125px;" class="nav-btn">THE INDEX</a>
-        <a href="https://thering1.github.io/thepinky.github.io/" style="left:230px;" class="nav-btn">THE PINKY</a>
-        <a href="https://thering1.github.io/thethumb.github.io/" style="left:335px;" class="nav-btn">THE THUMB</a>
+        <a href="https://thering1.github.io/thering.github.io/" style="right:455px;" class="nav-btn link-ring">THE RING</a>
+        <a href="https://thering1.github.io/theindex.github.io/" style="right:350px;" class="nav-btn link-index">THE INDEX</a>
+        <a href="https://thering1.github.io/thepinky.github.io/" style="right:245px;" class="nav-btn link-pinky">THE PINKY</a>
+        <a href="https://thering1.github.io/thethumb.github.io/" style="right:140px;" class="nav-btn link-thumb">THE THUMB</a>
     </div>
 
-    <button id="auth-toggle-btn" style="right:20px;" class="nav-btn">SIGN IN</button>
+    <button id="auth-toggle-btn" style="right:20px; font-family:'Bangers';" class="nav-btn">SIGN IN</button>
 
     <div id="auth-modal">
         <div id="login-view">
@@ -199,7 +213,6 @@
             return div.innerHTML;
         };
 
-        // --- UI TOGGLE LOGIC ---
         function updateAuthButtonText() {
             const btn = document.getElementById('auth-toggle-btn');
             const modal = document.getElementById('auth-modal');
@@ -210,7 +223,6 @@
             }
         }
 
-        // --- AUDIT LOGS ---
         onValue(ref(db, 'middle_logs'), snap => {
             logsCache = [];
             snap.forEach(c => { logsCache.push(c.val()); });
@@ -241,7 +253,6 @@
             });
         };
 
-        // --- REGISTRY ---
         onValue(ref(db, 'middle_registry'), snap => {
             registryCache = snap.val() || {};
             renderRegistry();
@@ -288,7 +299,6 @@
             });
         };
 
-        // --- AUTH & MANAGEMENT ---
         document.getElementById('loginBtn').onclick = async () => {
             const u = document.getElementById('uIn').value, p = document.getElementById('pIn').value;
             const snap = await get(ref(userDb, `users/${u}`));
@@ -345,7 +355,6 @@
             });
         };
 
-        // --- HOUSEKEEPING ---
         const videoElement = document.getElementById('bg-video');
         let lastVideo = 0;
         const shuffleBackground = () => {
@@ -360,7 +369,10 @@
 
         document.getElementById('publishVBtn').onclick = async () => {
             const t = document.getElementById('targetName').value.trim(), s = document.getElementById('sinDesc').value.trim(), v = document.getElementById('vDesc').value.trim();
-            if(!t || !s || !v) return;
+            if(!t || !s || !v) {
+                alert("Submission blocked: Sin and Vengeance must be recorded.");
+                return;
+            }
             await push(ref(db, `middle_registry/${t}`), { sin: s, action: v });
             await push(ref(db, 'middle_logs'), { 
                 user: currentSib ? currentSib.display_name : "Anonymous", rank: currentSib ? currentSib.rank : "Stranger",
